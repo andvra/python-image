@@ -2,7 +2,7 @@
 import numpy as np
 import image as img
 import json
-img_orig = img.load_image('star_small.png')
+img_orig = img.load_image('images/star_small.png')
 img_gray = img.get_gray(img_orig)
 img_hsv = img.get_hsv(img_orig)
 hsv = img.get_hsv_parts(img_hsv)
@@ -32,6 +32,6 @@ img.show_and_wait_with_contour(img_orig, contours[0])
 img.show_and_wait_with_contour(img_bw2, contours[0])
 img.show_and_wait_with_contour(img_gray, contours[0])
 img.show_and_wait(hsv[0])
-img.show_and_wait((hsv[0]+75)%180)
+img.show_and_wait((hsv[0]+75) % 180)
 img.show_and_wait(hsv[1])
 img.show_and_wait(hsv[2])
