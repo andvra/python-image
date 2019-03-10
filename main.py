@@ -10,11 +10,12 @@ import cv2
 import time
 from cmath import pi
 import tkinter as tk
+from PIL import Image, ImageTk
 
 done = False
 image_path = utils.get_input_image_path()
 img_orig = img.load_image(image_path)
-img_resized = img.resize(img_orig, 700, 700)
+img_resized = img.resize(img_orig, 600, 600)
 pixel_value = img_resized[0][0]
 img_bw = np.zeros(
     (img_resized.shape[0], img_resized.shape[1], 1), np.uint8)
@@ -25,24 +26,21 @@ longest_contour = []
 for c in contours:
     if len(c) > len(longest_contour):
         longest_contour = c
-print('Longest contour is contains ', len(longest_contour), ' points')
 # TODO: Reduce the number of contours by straigtening the lines
 img_contour = img.draw_contours(img_resized, [longest_contour])
 
-# img.show_and_wait(img_resized, "Resized " + image_path)
-# img.show_and_wait(img_bw, "BW")
-# img.show_and_wait(img_contour, "Contour")
+img.show_and_wait(img_resized, "Resized " + image_path)
 
 # Reduces the list. Original shape: (no_contours, 1, 2). New shape: (no_contours, 2)
+longest_contour_as_list = list(
+    map(lambda item: (item[0][0], item[0][1]), longest_contour))
+# Here, we center the points around the origin (0, 0)
+average_point = np.sum(longest_contour_as_list,
+                       0)//len(longest_contour_as_list)
+longest_contour_as_list = longest_contour_as_list-average_point
 contour_points = np.array(
-    list(map(lambda item: ContourPoint(item[0][0], item[0][1]), longest_contour)))
-epicycles = Epicycles(contour_points)
-# print('0: ', epicycles.f(0).to_string())
-# print('1: ', epicycles.f(1).to_string())
-# print('2: ', epicycles.f(2).to_string())
-# print('3.1415: ', epicycles.f(3.1415).to_string())
-# print('6: ', epicycles.f(6).to_string())
-# print('6.283: ', epicycles.f(6.283).to_string())
+    list(map(lambda item: ContourPoint(item[0], item[1]), longest_contour_as_list)))
+epi = Epicycles(contour_points)
 
 
 class GuiCircle:
@@ -52,32 +50,82 @@ class GuiCircle:
         self.r = r
 
 
+class GuiLine:
+    def __init__(self, x1=0, y1=0, x2=0, y2=0, fill="white"):
+        self.x1 = x1
+        self.y1 = y1
+        self.x2 = x2
+        self.y2 = y2
+        self.fill = fill
+
+
 class Application(tk.Frame):
-    def __init__(self, width, height, master=None):
+    def __init__(self, width, height, image_path, master=None):
         super().__init__(master)
         self.master = master
         master.title('Epicycles')
         master.geometry(str(width)+'x'+str(height))
         master.resizable(0, 0)
+        self.width = width
+        self.height = height
+        self.half_width = width//2
+        self.half_height = height//2
         self.canvas = tk.Canvas(master, width=width, height=height, bg="gray")
         self.canvas.pack()
         # self.pack()
         self.new_objects = []
         self.current_objects = []
+        self.draw_axes()
+        self.draw_image(image_path)
         self.render()
 
+    def draw_axes(self):
+        self.update_line(self.half_width, 0, self.half_width,
+                         self.height, "axis_vertical")
+        self.update_line(0, self.half_height, self.width, self.half_height)
+
+    def draw_image(self, image_path):
+        img_reverse_color = cv2.cvtColor(img_resized, cv2.COLOR_BGR2RGB)
+        img_array = Image.fromarray(img_reverse_color)
+        img_tk = ImageTk.PhotoImage(img_array)
+        print(average_point)
+        print(img_tk.width()," ",img_tk.height())
+        # We have calculated the center of our contour. When we draw the image, we must adjust its position
+        #   based on how much it differs from the center of the image.
+        diff_x=img_tk.width()/2-average_point[0]
+        diff_y=img_tk.height()/2-average_point[1]
+        print(diff_x,': ',diff_y)
+        x = self.half_width+diff_x
+        y = self.half_height+diff_y
+        # We need to keep a reference, otherwise it will be thrown away by the garbage collector
+        self.current_image = img_tk
+        self.canvas.create_image(x, y, image=img_tk)
+
     def update_circle(self, x, y, r, tag=None):
-        circle = GuiCircle(x, y, r)
+        circle = GuiCircle(x+self.half_width, y+self.half_height, r)
         self.update_object(tag, circle)
+
+    def update_line(self, x1, y1, x2, y2, tag=None):
+        line = GuiLine(x1, y1, x2, y2)
+        self.update_object(tag, line)
 
     def update_object(self, tag, obj):
         self.new_objects.append((tag, obj))
+
+    def clear(self):
+        self.canvas.delete("circle")
 
     def create_circle(self, x, y, r, tag):
         if tag == None:
             return self.canvas.create_oval(x-r, y-r, x+r, y+r, tags=("circle"))
         else:
             return self.canvas.create_oval(x-r, y-r, x+r, y+r, tags=("circle", tag))
+
+    def create_line(self, x1, y1, x2, y2, fill, tag):
+        if tag == None:
+            return self.canvas.create_line(x1, y1, x2, y2, fill=fill, tags=("line"))
+        else:
+            return self.canvas.create_line(x1, y1, x2, y2, fill=fill, tags=("line", tag))
 
     def move_circle(self, object_id, item):
         self.canvas.coords(object_id, item.x-item.r,
@@ -100,21 +148,29 @@ class Application(tk.Frame):
                         item.x, item.y, item.r, item_tag)
                     if item_tag != None:
                         self.current_objects.append((item_tag, drawn_object))
+            if(type(item) == GuiLine):
+                self.create_line(item.x1, item.y1, item.x2,
+                                 item.y2, item.fill, item_tag)
         self.master.after(50, self.render)
 
 
-def move_circles(app, x=0, y=0):
-    app.update_circle(x, y, 50, "First circle")
-    x += 1
-    y += 2
-    Event().wait(0.05)
-    if not done:
-        move_circles(app, x, y)
+def move_circles(app, epi, t=0):
+    while not done:
+        coord = epi.f(t)
+        x = coord.x
+        y = coord.y
+        app.update_circle(x, y, 50, "First circle")
+        app.update_circle(x, y, 10)
+        Event().wait(0.01)
+        t += 0.01
+        if(t > 2*pi):
+            t -= 2*pi
+            app.clear()
 
 
 root = tk.Tk()
-app = Application(800, 600, root)
-thread = Thread(target=move_circles, args=[app])
+app = Application(800, 800, image_path, root)
+thread = Thread(target=move_circles, args=(app, epi))
 # Makes it possible to exit the application even when the thread is running
 thread.daemon = True
 thread.start()

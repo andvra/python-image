@@ -17,7 +17,6 @@ class Epicycles:
             total_length += points[i].distance(points[i+1])
         points[no_points-1].start_distance = total_length
         total_length += points[no_points-1].distance(points[0])
-        print('Total length: ', total_length)
         return total_length
 
     def f(self, t):
@@ -49,8 +48,4 @@ class Epicycles:
         coord_x = point_start.x + pos_t * diff.x
         coord_y = point_start.y + pos_t * diff.y
         coord = ContourPoint(coord_x, coord_y)
-        print("Local t: ", pos_t)
-        # print('Before: ', point_start.to_string())
-        # print('Current: ', coord.to_string())
-        # print('After: ', point_end.to_string())
         return coord

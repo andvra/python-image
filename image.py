@@ -32,15 +32,15 @@ def merge_bws(img_bw_1, img_bw_2):
 def resize(img, max_height, max_width):
     dim = None
     (img_height, img_width) = img.shape[:2]
-    ratio_original = img_height/img_width
-    ratio_destination = max_height/max_width
+    ratio_image = img_height/img_width
+    ratio_window = max_height/max_width
     # We should scale based on the width if the height-to-width ratio is biggest in the original image
     # Otherwise, we should do it based on height
-    if ratio_original > ratio_destination:
-        new_width = int(float(max_height)*ratio_original)
+    if ratio_image > ratio_window:
+        new_width = int(float(max_height)*(1/ratio_image))
         dim = (new_width, max_height)
     else:
-        new_height = int(float(max_width)*ratio_original)
+        new_height = int(float(max_width)*ratio_image)
         dim = (max_width, new_height)
     resized = cv2.resize(img, dim, interpolation=cv2.INTER_AREA)
 
