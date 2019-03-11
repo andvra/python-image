@@ -76,7 +76,7 @@ class Application(tk.Frame):
         self.new_objects = []
         self.current_objects = []
         self.draw_axes()
-        self.draw_image(image_path)
+        self.draw_image()
         self.render()
 
     def draw_axes(self):
@@ -84,17 +84,14 @@ class Application(tk.Frame):
                          self.height, "axis_vertical")
         self.update_line(0, self.half_height, self.width, self.half_height)
 
-    def draw_image(self, image_path):
+    def draw_image(self):
         img_reverse_color = cv2.cvtColor(img_resized, cv2.COLOR_BGR2RGB)
         img_array = Image.fromarray(img_reverse_color)
         img_tk = ImageTk.PhotoImage(img_array)
-        print(average_point)
-        print(img_tk.width()," ",img_tk.height())
         # We have calculated the center of our contour. When we draw the image, we must adjust its position
         #   based on how much it differs from the center of the image.
-        diff_x=img_tk.width()/2-average_point[0]
-        diff_y=img_tk.height()/2-average_point[1]
-        print(diff_x,': ',diff_y)
+        diff_x = img_tk.width()/2-average_point[0]
+        diff_y = img_tk.height()/2-average_point[1]
         x = self.half_width+diff_x
         y = self.half_height+diff_y
         # We need to keep a reference, otherwise it will be thrown away by the garbage collector
@@ -114,6 +111,7 @@ class Application(tk.Frame):
 
     def clear(self):
         self.canvas.delete("circle")
+        self.current_objects = []
 
     def create_circle(self, x, y, r, tag):
         if tag == None:
@@ -159,7 +157,8 @@ def move_circles(app, epi, t=0):
         coord = epi.f(t)
         x = coord.x
         y = coord.y
-        app.update_circle(x, y, 50, "First circle")
+        for i in range(1, 100):
+            app.update_circle(x+i, y, 50, "First circle"+str(i))
         app.update_circle(x, y, 10)
         Event().wait(0.01)
         t += 0.01
