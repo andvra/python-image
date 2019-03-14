@@ -40,7 +40,7 @@ average_point = np.sum(longest_contour_as_list,
 longest_contour_as_list = longest_contour_as_list-average_point
 contour_points = np.array(
     list(map(lambda item: ContourPoint(item[0], item[1]), longest_contour_as_list)))
-epi = Epicycles(contour_points, 1)
+epi = Epicycles(contour_points, 10)
 
 
 class GuiCircle:
@@ -155,11 +155,13 @@ class Application(tk.Frame):
 def move_circles(app, epi, t=0):
     while not done:
         coord = epi.f(t)
+        coord_calc = epi.get_calculated_position(t)
         x = coord.x
         y = coord.y
-        for i in range(1, 100):
-            app.update_circle(x+i, y, 50, "First circle"+str(i))
-        app.update_circle(x, y, 10)
+        app.update_circle(x, y, 50, "First circle")
+        # app.update_circle(x, y, 10)
+        app.update_circle(coord_calc.x,coord_calc.y,100,"Calculated circle")
+        app.update_circle(coord_calc.x,coord_calc.y, 10)
         Event().wait(0.01)
         t += 0.01
         if(t > 2*pi):

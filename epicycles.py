@@ -3,11 +3,13 @@ from contourpoint import ContourPoint
 from typing import List
 import scipy.integrate as integrate
 import scipy.special as special
-from cmath import exp
+from cmath import exp, cos, sin
 
 
 class PartOfPath:
-    def __init__(self, t_start, t_end, local_function):
+    def __init__(self, point_start: ContourPoint, point_end: ContourPoint, t_start, t_end, local_function):
+        self.point_start = point_start
+        self.point_end = point_end
         self.t_start = t_start
         self.t_end = t_end
         self.local_function = local_function
@@ -20,20 +22,49 @@ class Epicycles:
     def __init__(self, points: List[ContourPoint], number_of_circle_pairs: int):
         self.points = points
         self.total_length = self.get_total_length(points)
+        self.number_of_circle_pairs = number_of_circle_pairs
         self.last_visited_part_index = 0
         self.last_t = 0
         self.parts = self.init_parts(points, self.total_length)
         self.coefficients = self.__calculate_coefficients__(
-            number_of_circle_pairs)
+            number_of_circle_pairs, self.parts, self.total_length)
 
-    def __calculate_coefficients__(self, number_of_circle_pairs):
-        for i in range(-number_of_circle_pairs, number_of_circle_pairs + 1):
-            # Denna kan förenklas stort! Integratel är additiva, dvs 
-            # integratl från a till b kan delas upp som integralerna a till c 
-            # pluss c till b, givet att c ligger i intervallet a till b. 
-            # Vi har funktioner för varje segment längs kurvan så med
-            # hjälp av dessa kan vi ta fram koefficienterna!
-            a = integrate.quad(lambda t: self.f(t)*exp(1j*i*t),0,2*pi)/(2*pi)
+    def __calculate_coefficients__(self, number_of_circle_pairs, parts: List[PartOfPath], total_length: float):
+        ret = []
+        for circle_index in range(-number_of_circle_pairs, number_of_circle_pairs+1):
+            real = 0
+            imag = 0
+            k = circle_index
+            for part_index in range(0, len(parts)):
+                cur_part = parts[part_index]
+                v = cur_part.point_start.x
+                w = (cur_part.point_end.x-cur_part.point_start.x)/total_length
+                p = cur_part.point_start.y
+                q = (cur_part.point_end.y-cur_part.point_start.y)/total_length
+                if k == 0:
+                    valReal, err = integrate.quad(lambda t: (
+                        1/(2*pi))*(v+w*t), cur_part.t_start, cur_part.t_end)
+                    valImag, err = integrate.quad(lambda t: (
+                        1/(2*pi))*(p+q*t), cur_part.t_start, cur_part.t_end)
+                else:
+                    valReal, err = integrate.quad(lambda t: (1/(2*pi))*(
+                        cos(k*t)*(v+w/k**2)-sin(k*t)*(p+q/k**2)+q*t*cos(k*t)/k+w*t*sin(k*t)/k), cur_part.t_start, cur_part.t_end)
+                    valImag, err = integrate.quad(lambda t: (1/(2*pi))*(
+                        cos(k*t)*(p+q/k**2)+sin(k*t)*(v+w/k**2)+q*t*sin(k*t)/k-w*t*cos(k*t)/k), cur_part.t_start, cur_part.t_end)
+                real += valReal
+                imag += valImag
+            ret.append(complex(real, imag))
+            print("Done calculating circle with k=" + str(k))
+        return ret
+
+    def get_calculated_position(self, t: float):
+        coord = ContourPoint()
+        for k in range(-self.number_of_circle_pairs, self.number_of_circle_pairs+1):
+            idx = k + self.number_of_circle_pairs
+            val = self.coefficients[idx] * exp(1j*k*t)
+            coord.x += val.real
+            coord.y += val.imag
+        return coord
 
     def init_parts(self, points: List[ContourPoint], total_length: float) -> List[PartOfPath]:
         parts = []
@@ -42,12 +73,14 @@ class Epicycles:
         for i in range(0, no_points-1):
             part_length, t_start, t_end, local_function = self.__init_parts__internal(
                 points[i], points[i+1], current_length, total_length)
-            parts.append(PartOfPath(t_start, t_end, local_function))
+            parts.append(PartOfPath(
+                points[i], points[i+1], t_start, t_end, local_function))
             current_length = current_length + part_length
         # Init the last part, closing the path
         part_length, t_start, t_end, local_function = self.__init_parts__internal(
             points[-1], points[0], current_length, total_length)
-        parts.append(PartOfPath(t_start, t_end, local_function))
+        parts.append(PartOfPath(
+            points[-1], points[0], t_start, t_end, local_function))
         return parts
 
     def __init_parts__internal(self, point_start: ContourPoint, point_end: ContourPoint, current_length: float, total_length: float):
@@ -56,7 +89,7 @@ class Epicycles:
         t_end = 2*pi*(current_length+part_length)/total_length
         t_range = t_end-t_start
         # We only support straight lines right now. This opens up for different shapes, such as
-        #   Beziers, which we'l find in SVGs
+        #   Beziers, which we'll find in SVGs
         def local_function(t): return point_start + \
             ((t-t_start)/t_range)*(point_end-point_start)
         return part_length, t_start, t_end, local_function
