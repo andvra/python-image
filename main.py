@@ -40,7 +40,7 @@ average_point = np.sum(longest_contour_as_list,
 longest_contour_as_list = longest_contour_as_list-average_point
 contour_points = np.array(
     list(map(lambda item: ContourPoint(item[0], item[1]), longest_contour_as_list)))
-epi = Epicycles(contour_points)
+epi = Epicycles(contour_points, 1)
 
 
 class GuiCircle:

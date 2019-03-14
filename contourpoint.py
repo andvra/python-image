@@ -14,6 +14,12 @@ class ContourPoint:
     def __sub__(self, other_point):
         return ContourPoint(self.x - other_point.x, self.y - other_point.y)
 
+    def __mul__(self,other:float):
+        return ContourPoint(self.x*other,self.y*other)
+
+    def __rmul__(self,other:float):
+        return self.__mul__(other)
+
     def distance(self, other_point):
         ret = sqrt((self.x - other_point.x) ** 2 +
                    (self.y - other_point.y) ** 2).real
