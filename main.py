@@ -3,7 +3,6 @@ import numpy as np
 import image as img
 from threading import Event, Thread
 from epicycles import Epicycles
-from contourpoint import ContourPoint
 import utils
 import json
 import cv2
@@ -12,43 +11,19 @@ from cmath import pi
 import tkinter as tk
 from PIL import Image, ImageTk
 
-done = False
 image_path = utils.get_input_image_path()
-img_orig = img.load_image(image_path)
-img_resized = img.resize(img_orig, 600, 600)
-pixel_value = img_resized[0][0]
-img_bw = np.zeros(
-    (img_resized.shape[0], img_resized.shape[1], 1), np.uint8)
-img_bw[:] = 255
-img_bw[np.where((img_resized == pixel_value).all(axis=2))] = 0
-contours = img.get_contours(img_bw)
-longest_contour = []
-for c in contours:
-    if len(c) > len(longest_contour):
-        longest_contour = c
-# TODO: Reduce the number of contours by straigtening the lines
-img_contour = img.draw_contours(img_resized, [longest_contour])
+img_resized, contour = img.load_image_2(image_path, 600, 600)
 
-img.show_and_wait(img_resized, "Resized " + image_path)
-
-# Reduces the list. Original shape: (no_contours, 1, 2). New shape: (no_contours, 2)
-longest_contour_as_list = list(
-    map(lambda item: (item[0][0], item[0][1]), longest_contour))
-# Here, we center the points around the origin (0, 0)
-average_point = np.sum(longest_contour_as_list,
-                       0)//len(longest_contour_as_list)
-longest_contour_as_list = longest_contour_as_list-average_point
-contour_points = np.array(
-    list(map(lambda item: ContourPoint(item[0], item[1]), longest_contour_as_list)))
-epi = Epicycles(contour_points, 10)
+done = False
+epi = Epicycles(contour, 20)
 
 
 class GuiCircle:
-    def __init__(self, x=0, y=0, r=0):
+    def __init__(self, x=0, y=0, r=0, outline="black"):
         self.x = x
         self.y = y
         self.r = r
-
+        self.outline = outline
 
 class GuiLine:
     def __init__(self, x1=0, y1=0, x2=0, y2=0, fill="white"):
@@ -90,34 +65,34 @@ class Application(tk.Frame):
         img_tk = ImageTk.PhotoImage(img_array)
         # We have calculated the center of our contour. When we draw the image, we must adjust its position
         #   based on how much it differs from the center of the image.
-        diff_x = img_tk.width()/2-average_point[0]
-        diff_y = img_tk.height()/2-average_point[1]
+        diff_x = img_tk.width()/2-contour.average_point.x
+        diff_y = img_tk.height()/2-contour.average_point.y
         x = self.half_width+diff_x
         y = self.half_height+diff_y
         # We need to keep a reference, otherwise it will be thrown away by the garbage collector
         self.current_image = img_tk
         self.canvas.create_image(x, y, image=img_tk)
 
-    def update_circle(self, x, y, r, tag=None):
-        circle = GuiCircle(x+self.half_width, y+self.half_height, r)
-        self.update_object(tag, circle)
+    def update_circle(self, x, y, r, tag=None, outline="black"):
+        circle = GuiCircle(x+self.half_width, y+self.half_height, r, outline)
+        self.__update_object__(tag, circle)
 
     def update_line(self, x1, y1, x2, y2, tag=None):
         line = GuiLine(x1, y1, x2, y2)
-        self.update_object(tag, line)
+        self.__update_object__(tag, line)
 
-    def update_object(self, tag, obj):
+    def __update_object__(self, tag, obj):
         self.new_objects.append((tag, obj))
 
     def clear(self):
         self.canvas.delete("circle")
         self.current_objects = []
 
-    def create_circle(self, x, y, r, tag):
+    def create_circle(self, x, y, r, outline, tag):
         if tag == None:
-            return self.canvas.create_oval(x-r, y-r, x+r, y+r, tags=("circle"))
+            return self.canvas.create_oval(x-r, y-r, x+r, y+r, outline=outline, tags=("circle"))
         else:
-            return self.canvas.create_oval(x-r, y-r, x+r, y+r, tags=("circle", tag))
+            return self.canvas.create_oval(x-r, y-r, x+r, y+r, outline=outline, tags=("circle", tag))
 
     def create_line(self, x1, y1, x2, y2, fill, tag):
         if tag == None:
@@ -143,7 +118,7 @@ class Application(tk.Frame):
                     self.move_circle(existing_object_id, item)
                 else:
                     drawn_object = self.create_circle(
-                        item.x, item.y, item.r, item_tag)
+                        item.x, item.y, item.r, item.outline, item_tag)
                     if item_tag != None:
                         self.current_objects.append((item_tag, drawn_object))
             if(type(item) == GuiLine):
@@ -154,14 +129,22 @@ class Application(tk.Frame):
 
 def move_circles(app, epi, t=0):
     while not done:
-        coord = epi.f(t)
+        coord = contour.f(t)
         coord_calc = epi.get_calculated_position(t)
         x = coord.x
         y = coord.y
         app.update_circle(x, y, 50, "First circle")
         # app.update_circle(x, y, 10)
-        app.update_circle(coord_calc.x,coord_calc.y,100,"Calculated circle")
-        app.update_circle(coord_calc.x,coord_calc.y, 10)
+        app.update_circle(coord_calc.x, coord_calc.y, 100, "Calculated circle")
+        app.update_circle(coord_calc.x, coord_calc.y, 10)
+
+        circles = epi.get_circles(t)
+        for i in range(0, len(circles)):
+            circle = circles[i]
+            app.update_circle(circle.x, circle.y, circle.r, "EpiCycle"+str(i))
+            if i==len(circles)-1:
+                app.update_circle(circle.x, circle.y, circle.r, None, "green")
+
         Event().wait(0.01)
         t += 0.01
         if(t > 2*pi):
