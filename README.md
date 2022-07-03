@@ -6,7 +6,7 @@ Use Fourier transforms to generate epicycles to follow the edges of an image. Ap
 
 Use Python3 to run the code.
 
-##### Recommended: create and run virtual environment.
+## Recommended: create and run virtual environment.
 
 Create virtual environment
 
@@ -23,7 +23,7 @@ Linux:
   . venv/bin/activate
 ```
 
-#### Install and run
+## Install and run
 
 Install packages:
 

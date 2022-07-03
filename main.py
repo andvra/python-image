@@ -1,17 +1,13 @@
-
-import numpy as np
 import image as img
 from threading import Event, Thread
 from epicycles import Epicycles
 import utils
-import json
 import cv2
-import time
 from cmath import pi
 import tkinter as tk
 from PIL import Image, ImageTk
 
-image_path = utils.get_input_image_path()
+image_path = "images/lips.png"  # utils.get_input_image_path()
 img_resized, contour = img.load_image_2(image_path, 600, 600)
 
 done = False
@@ -25,6 +21,7 @@ class GuiCircle:
         self.r = r
         self.outline = outline
 
+
 class GuiLine:
     def __init__(self, x1=0, y1=0, x2=0, y2=0, fill="white"):
         self.x1 = x1
@@ -35,7 +32,7 @@ class GuiLine:
 
 
 class Application(tk.Frame):
-    def __init__(self, width, height, image_path, master=None):
+    def __init__(self, width, height, master=None):
         super().__init__(master)
         self.master = master
         master.title('Epicycles')
@@ -73,7 +70,7 @@ class Application(tk.Frame):
         self.current_image = img_tk
         self.canvas.create_image(x, y, image=img_tk)
 
-    def update_circle(self, x, y, r, tag=None, outline="black"):
+    def update_circle(self, x, y, r, tag=None, outline="pink"):
         circle = GuiCircle(x+self.half_width, y+self.half_height, r, outline)
         self.__update_object__(tag, circle)
 
@@ -134,7 +131,6 @@ def move_circles(app, epi, t=0):
         x = coord.x
         y = coord.y
         app.update_circle(x, y, 50, "First circle")
-        # app.update_circle(x, y, 10)
         app.update_circle(coord_calc.x, coord_calc.y, 100, "Calculated circle")
         app.update_circle(coord_calc.x, coord_calc.y, 10)
 
@@ -142,7 +138,7 @@ def move_circles(app, epi, t=0):
         for i in range(0, len(circles)):
             circle = circles[i]
             app.update_circle(circle.x, circle.y, circle.r, "EpiCycle"+str(i))
-            if i==len(circles)-1:
+            if i == len(circles)-1:
                 app.update_circle(circle.x, circle.y, circle.r, None, "green")
 
         Event().wait(0.01)
@@ -153,8 +149,9 @@ def move_circles(app, epi, t=0):
 
 
 root = tk.Tk()
-app = Application(800, 800, image_path, root)
+app = Application(800, 800, root)
 thread = Thread(target=move_circles, args=(app, epi))
+
 # Makes it possible to exit the application even when the thread is running
 thread.daemon = True
 thread.start()

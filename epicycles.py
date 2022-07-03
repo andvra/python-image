@@ -1,9 +1,7 @@
-from image import ContourPoint, Contour, PartOfPath
+from image import ContourPoint, Contour
 from typing import List
 import scipy.integrate as integrate
-import scipy.special as special
-from cmath import exp, cos, sin, sqrt, pi
-import copy
+from cmath import exp, cos, sin, pi
 
 
 class EpiCircle:

@@ -1,7 +1,7 @@
 import cv2
 from matplotlib import pyplot as plt
 from cmath import sqrt, pi
-from typing import List, Callable
+from typing import List, Tuple
 import numpy as np
 
 
@@ -64,7 +64,7 @@ class Contour:
         self.average_point = average_point
         self.last_visited_part_index = 0
         self.last_t = 0
-        
+
     def f(self, t) -> ContourPoint:
         if self.last_t > t:
             # Reset the "last visited" when we pass 2pi (one complete iteration)
@@ -128,7 +128,7 @@ def __get_parts__internal(point_start: ContourPoint, point_end: ContourPoint, cu
     return part_length, t_start, t_end
 
 
-def load_image_2(image_path: str, max_height: int, max_width: int) -> (np.ndarray, Contour, np.ndarray):
+def load_image_2(image_path: str, max_height: int, max_width: int) -> Tuple[np.ndarray, Contour]:
     last_dot_idx = image_path.rfind(".")
     file_type = image_path[last_dot_idx+1:]
     if file_type == "svg":
@@ -147,7 +147,7 @@ def load_image_2(image_path: str, max_height: int, max_width: int) -> (np.ndarra
         for c in contours:
             if len(c) > len(longest_contour):
                 longest_contour = c
-        # TODO: Reduce the number of contours by straigtening the lines with some error marging
+        # TODO: Reduce the number of contours by straigtening the lines with some error margin
 
         # Reduces the list. Original shape: (no_contours, 1, 2). New shape: (no_contours, 2)
         longest_contour_as_list = list(
