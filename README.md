@@ -1,8 +1,10 @@
-# Fourier fun
+# Epicycles
 
 Use Fourier transforms to generate epicycles to follow the edges of an image. Apply common CV techniques to extract edges from any given image.
 
-## Get started
+<img src="./assets/game.png" width="500px">
+
+## Getting started
 
 Use Python >= 3.7 to run the code.
 
@@ -11,7 +13,7 @@ Use Python >= 3.7 to run the code.
 Create virtual environment
 
 ```
-python -m venv venv
+$ python -m venv venv
 ```
 
 Run virtual environment
@@ -28,18 +30,18 @@ Linux:
 Install packages:
 
 ```
-pip install -r requirements.txt
+$ pip install -r requirements.txt
 ```
 
 Run:
 
 ```
-python main.py
+$ python main.py
 ```
 
 ## References
 
-Based on [this](https://www.youtube.com/watch?v=qS4H6PEcCCA) video by the Mathologer.
+Based on [this](https://www.youtube.com/watch?v=qS4H6PEcCCA) video by Mathologer.
 
 ## TODOs
 
