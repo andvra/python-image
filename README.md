@@ -4,7 +4,7 @@ Use Fourier transforms to generate epicycles to follow the edges of an image. Ap
 
 ## Get started
 
-Use Python3 to run the code.
+Use Python >= 3.7 to run the code.
 
 ## Recommended: create and run virtual environment.
 
